@@ -23,7 +23,12 @@ jobs:
       - name: Build Electron app
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
-        run: yarn dist
+        run: |
+          yarn build
+          yarn dist
+
+      - name: List files in root
+        run: ls -la
 
       - name: List files in dist
         run: ls -la dist
