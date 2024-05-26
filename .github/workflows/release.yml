@@ -21,6 +21,8 @@ jobs:
         run: yarn install
 
       - name: Build Electron app
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: yarn dist
 
       - name: Upload build artifacts
