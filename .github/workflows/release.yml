@@ -68,3 +68,4 @@ jobs:
           token: ${{ secrets.GH_TOKEN }}
           name: casbin-editor-macos.zip
           artifactContentType: application/zip
+          allowUpdates: true
