@@ -6,7 +6,7 @@ on:
       - 'v*.*.*'
 
 jobs:
-  build:
+  build-macos:
     runs-on: macos-latest
     steps:
       - name: Check out code
@@ -20,22 +20,69 @@ jobs:
       - name: Install dependencies
         run: yarn install
 
-      - name: Build Electron app
+      - name: Build Electron app for macOS
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
-        run: yarn dist
+        run: yarn dist --mac
 
-      - name: List files in dist
-        run: ls -la dist
-
-      - name: Upload build artifacts
+      - name: Upload macOS build artifacts
         uses: actions/upload-artifact@v2
         with:
           name: electron-app-macos
           path: dist
 
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: yarn install
+
+      - name: Build Electron app for Windows
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: yarn dist --win
+
+      - name: Upload Windows build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: electron-app-windows
+          path: dist
+
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: yarn install
+
+      - name: Build Electron app for Linux
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: yarn dist --linux
+
+      - name: Upload Linux build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: electron-app-linux
+          path: dist
+
   release:
-    needs: build
+    needs: [build-macos, build-windows, build-linux]
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
@@ -45,10 +92,19 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: electron-app-macos
-          path: dist
+          path: dist/macos
 
-      - name: List files in dist
-        run: ls -la dist
+      - name: Download Windows build artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: electron-app-windows
+          path: dist/windows
+
+      - name: Download Linux build artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: electron-app-linux
+          path: dist/linux
 
       - name: Create GitHub Release
         id: create_release
@@ -61,11 +117,29 @@ jobs:
           draft: false
           prerelease: false
 
-      - name: Upload Release Assets
+      - name: Upload macOS Release Assets
         uses: ncipollo/release-action@v1
         with:
-          artifacts: 'dist/casbin-editor-1.0.0-arm64-mac.zip'
+          artifacts: 'dist/macos/casbin-editor-*-mac.zip'
           token: ${{ secrets.GH_TOKEN }}
           name: casbin-editor-macos.zip
           artifactContentType: application/zip
+          allowUpdates: true
+
+      - name: Upload Windows Release Assets
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: 'dist/windows/casbin-editor-*-win.zip'
+          token: ${{ secrets.GH_TOKEN }}
+          name: casbin-editor-windows.zip
+          artifactContentType: application/zip
+          allowUpdates: true
+
+      - name: Upload Linux Release Assets
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: 'dist/linux/casbin-editor-*-linux.AppImage'
+          token: ${{ secrets.GH_TOKEN }}
+          name: casbin-editor-linux.AppImage
+          artifactContentType: application/x-iso9660-appimage
           allowUpdates: true
