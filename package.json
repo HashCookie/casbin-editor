@@ -32,7 +32,8 @@
     },
     "linux": {
       "target": ["AppImage", "deb"],
-      "category": "Utility"
+      "category": "Utility",
+      "maintainer": "org.casbin.editor"
     },
     "win": {
       "target": "nsis"
