@@ -45,7 +45,6 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: electron-app-macos
-          path: dist
 
       - name: List files in dist
         run: ls -la dist
@@ -56,15 +55,15 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
-          tag_name: ${{ github.ref }}-new
-          release_name: Release ${{ github.ref }}-new
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
           draft: false
           prerelease: false
 
       - name: Upload Release Assets
         uses: ncipollo/release-action@v1
         with:
-          artifacts: 'dist/*'
+          artifacts: 'dist/casbin-editor-1.0.0-arm64-mac.zip'
           token: ${{ secrets.GH_TOKEN }}
           name: casbin-editor-macos.zip
           artifactContentType: application/zip
