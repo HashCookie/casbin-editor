@@ -30,6 +30,10 @@
       "identity": null,
       "hardenedRuntime": false
     },
+    "linux": {
+      "target": ["AppImage", "deb"],
+      "category": "Utility"
+    },
     "win": {
       "target": "nsis"
     },
