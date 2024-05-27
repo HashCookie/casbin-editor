@@ -29,7 +29,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: electron-app-macos
-          path: dist
+          path: dist/*.dmg
 
   build-windows:
     runs-on: windows-latest
@@ -54,7 +54,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: electron-app-windows
-          path: dist
+          path: dist/*.exe
 
   build-linux:
     runs-on: ubuntu-latest
@@ -79,7 +79,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: electron-app-linux
-          path: dist
+          path: dist/*.AppImage
 
   release:
     needs: [build-macos, build-windows, build-linux]
@@ -120,25 +120,25 @@ jobs:
       - name: Upload macOS Release Assets
         uses: ncipollo/release-action@v1
         with:
-          artifacts: 'dist/macos/casbin-editor-*-mac.zip'
+          artifacts: 'dist/macos/*.dmg'
           token: ${{ secrets.GH_TOKEN }}
-          name: casbin-editor-macos.zip
-          artifactContentType: application/zip
+          name: casbin-editor-macos.dmg
+          artifactContentType: application/x-apple-diskimage
           allowUpdates: true
 
       - name: Upload Windows Release Assets
         uses: ncipollo/release-action@v1
         with:
-          artifacts: 'dist/windows/casbin-editor-*-win.zip'
+          artifacts: 'dist/windows/*.exe'
           token: ${{ secrets.GH_TOKEN }}
-          name: casbin-editor-windows.zip
-          artifactContentType: application/zip
+          name: casbin-editor-windows.exe
+          artifactContentType: application/vnd.microsoft.portable-executable
           allowUpdates: true
 
       - name: Upload Linux Release Assets
         uses: ncipollo/release-action@v1
         with:
-          artifacts: 'dist/linux/casbin-editor-*-linux.AppImage'
+          artifacts: 'dist/linux/*.AppImage'
           token: ${{ secrets.GH_TOKEN }}
           name: casbin-editor-linux.AppImage
           artifactContentType: application/x-iso9660-appimage
