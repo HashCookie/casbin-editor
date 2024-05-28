@@ -90,7 +90,7 @@ jobs:
       - name: Create GitHub Release and Upload Assets
         uses: ncipollo/release-action@v1
         with:
-          tag: ${{ github.ref }}
+          tag: ${{ github.ref_name }}
           name: Release ${{ github.ref_name }}
           draft: false
           prerelease: false
