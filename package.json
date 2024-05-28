@@ -49,7 +49,7 @@
   },
   "release": {
     "branches": [
-      "main"
+      "maintest"
     ],
     "plugins": [
       "@semantic-release/commit-analyzer",
