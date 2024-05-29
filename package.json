@@ -54,7 +54,13 @@
     "plugins": [
       "@semantic-release/commit-analyzer",
       "@semantic-release/release-notes-generator",
-      "@semantic-release/github"
+      "@semantic-release/github",
+      [
+        "@semantic-release/exec",
+        {
+          "publishCmd": "npx release-action@v1 --tag ${nextRelease.gitTag} --name 'Release ${nextRelease.gitTag}' --artifacts 'dist/macos/*.dmg dist/windows/*.exe dist/linux/*.AppImage' --token ${process.env.GITHUB_TOKEN}"
+        }
+      ]
     ]
   },
   "dependencies": {
