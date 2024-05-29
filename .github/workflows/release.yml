@@ -78,7 +78,6 @@ jobs:
           node-version: '20.8.1'
       - name: Clear npm cache
         run: npm cache clean --force
-        
       - name: Download macOS build artifacts
         uses: actions/download-artifact@v2
         with:
