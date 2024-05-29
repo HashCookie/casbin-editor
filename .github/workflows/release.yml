@@ -3,10 +3,10 @@ name: Build and Release Electron App
 on:
   push:
     branches:
-      - main
+      - maintest3 
   pull_request:
     branches:
-      - main
+      - maintest3 
 
 jobs:
   build-macos:
