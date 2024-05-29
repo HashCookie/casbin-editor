@@ -54,7 +54,25 @@
     "plugins": [
       "@semantic-release/commit-analyzer",
       "@semantic-release/release-notes-generator",
-      "@semantic-release/github"
+      [
+        "@semantic-release/github",
+        {
+          "assets": [
+            {
+              "path": "dist/macos/*.dmg",
+              "label": "macOS"
+            },
+            {
+              "path": "dist/windows/*.exe",
+              "label": "Windows"
+            },
+            {
+              "path": "dist/linux/*.AppImage",
+              "label": "Linux"
+            }
+          ]
+        }
+      ]
     ]
   },
   "dependencies": {
