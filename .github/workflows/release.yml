@@ -93,37 +93,29 @@ jobs:
         with:
           name: electron-app-linux
           path: dist/linux
-      - name: Get tag name
-        id: get_tag_name
-        run: echo "::set-output name=TAG_NAME::${GITHUB_REF#refs/tags/}"
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        with:
-          tag_name: ${{ steps.get_tag_name.outputs.TAG_NAME }}
-          release_name: Release ${{ steps.get_tag_name.outputs.TAG_NAME }}
-          draft: false
-          prerelease: false
+      - name: Run semantic-release
+        id: semantic
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: yarn release
       - name: Upload macOS release asset
         uses: actions/upload-release-asset@v1
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          upload_url: ${{ steps.semantic.outputs.upload_url }}
           asset_path: dist/macos/*.dmg
           asset_name: electron-app-macos.dmg
           asset_content_type: application/octet-stream
       - name: Upload Windows release asset
         uses: actions/upload-release-asset@v1
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          upload_url: ${{ steps.semantic.outputs.upload_url }}
           asset_path: dist/windows/*.exe
           asset_name: electron-app-windows.exe
           asset_content_type: application/octet-stream
       - name: Upload Linux release asset
         uses: actions/upload-release-asset@v1
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          upload_url: ${{ steps.semantic.outputs.upload_url }}
           asset_path: dist/linux/*.AppImage
           asset_name: electron-app-linux.AppImage
           asset_content_type: application/octet-stream
