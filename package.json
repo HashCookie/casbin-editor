@@ -10,7 +10,7 @@
     "lint": "next lint",
     "electron": "electron .",
     "dist": "yarn build && electron-builder",
-    "release": "npx -p semantic-release -p @semantic-release/git -p @semantic-release/changelog -p @semantic-release/exec -p release-action semantic-release"
+    "release": "npx -p semantic-release -p @semantic-release/git -p @semantic-release/changelog -p @semantic-release/exec semantic-release"
   },
   "build": {
     "appId": "org.casbin.editor",
@@ -54,13 +54,7 @@
     "plugins": [
       "@semantic-release/commit-analyzer",
       "@semantic-release/release-notes-generator",
-      "@semantic-release/github",
-      [
-        "@semantic-release/exec",
-        {
-          "publishCmd": "npx release-action@v1 --tag ${nextRelease.gitTag} --name 'Release ${nextRelease.gitTag}' --artifacts 'dist/macos/*.dmg dist/windows/*.exe dist/linux/*.AppImage' --token ${process.env.GH_TOKEN}"
-        }
-      ]
+      "@semantic-release/github"
     ]
   },
   "dependencies": {
