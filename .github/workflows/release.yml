@@ -94,18 +94,6 @@ jobs:
         with:
           name: electron-app-linux
           path: dist/linux
-      - name: Create GitHub Release and Upload Assets
-        uses: ncipollo/release-action@v1
-        with:
-          tag: ${{ github.ref_name }}
-          name: Release ${{ github.ref_name }}
-          draft: false
-          prerelease: false
-          artifacts: |
-            dist/macos/*.dmg
-            dist/windows/*.exe
-            dist/linux/*.AppImage
-          token: ${{ secrets.GH_TOKEN }}
       - name: Run semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
