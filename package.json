@@ -10,7 +10,7 @@
     "lint": "next lint",
     "electron": "electron .",
     "dist": "yarn build && electron-builder",
-    "release": "npx -p semantic-release -p @semantic-release/git -p @semantic-release/changelog -p @semantic-release/exec semantic-release"
+    "release": "npx -p semantic-release -p @semantic-release/git -p @semantic-release/changelog -p @semantic-release/exec -p release-action semantic-release"
   },
   "build": {
     "appId": "org.casbin.editor",
