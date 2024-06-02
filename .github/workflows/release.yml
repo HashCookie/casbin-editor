@@ -3,7 +3,7 @@ name: Build and Release Electron App
 on:
   push:
     branches:
-      - master
+      - fix_win_electron
   pull_request:
     branches:
       - master
