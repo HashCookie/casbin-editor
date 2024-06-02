@@ -49,7 +49,7 @@
   },
   "release": {
     "branches": [
-      "master"
+      "fix_win"
     ],
     "plugins": [
       "@semantic-release/commit-analyzer",
