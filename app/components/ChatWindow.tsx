@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 
 interface Message {
   sender: 'user' | 'assistant';
@@ -19,16 +19,7 @@ const ChatWindow: React.FC = () => {
   });
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const initialMessage: Message = {
-      sender: 'assistant',
-      text: '你好，我是你的小助手。你有什么疑问吗？',
-    };
-    setState((prevState) => {
-      return { ...prevState, messages: [initialMessage] };
-    });
-  }, []);
+  const initialMessageSentRef = useRef(false);
 
   useEffect(() => {
     if (messagesEndRef.current) {
@@ -75,132 +66,155 @@ const ChatWindow: React.FC = () => {
       }
 
       const content = await fileContentResponse.text();
-      return content;
+
+      return { content };
     } catch (error) {
       console.error('Error uploading file:', error);
       return null;
     }
   }, []);
 
-  const handleSendMessage = useCallback(async () => {
-    if (state.userInput.trim() === '') {
-      return;
-    }
+  const sendMessage = useCallback(
+    async (messageText: string, isInitialMessage = false) => {
+      let history = state.messages.map((msg) => {
+        return {
+          role: msg.sender,
+          content: msg.text,
+        };
+      });
 
-    const newMessage: Message = {
-      sender: 'user',
-      text: state.userInput,
-    };
+      let currentFileContent = state.fileContent;
 
-    setState((prevState) => {
-      return {
-        ...prevState,
-        messages: [...prevState.messages, newMessage],
-        userInput: '',
+      if (!currentFileContent) {
+        const fileResult = await uploadFile();
+        if (fileResult) {
+          currentFileContent = fileResult.content;
+          setState((prevState) => {
+            return {
+              ...prevState,
+              fileContent: currentFileContent,
+            };
+          });
+        } else {
+          console.error('Failed to upload file and get content.');
+          return;
+        }
+      }
+
+      const userMessage: Message = {
+        sender: 'user',
+        text: messageText,
       };
-    });
 
-    const history = state.messages.map((msg) => {
-      return {
-        role: msg.sender,
-        content: msg.text,
-      };
-    });
-    history.push({ role: 'user', content: state.userInput });
-
-    let currentFileContent = state.fileContent;
-
-    if (!currentFileContent) {
-      currentFileContent = await uploadFile();
-      if (currentFileContent) {
+      if (!isInitialMessage) {
         setState((prevState) => {
           return {
             ...prevState,
-            fileContent: currentFileContent,
+            messages: [...prevState.messages, userMessage],
+            userInput: '',
           };
         });
-      } else {
-        console.error('Failed to upload file and get content.');
-        return;
-      }
-    }
-
-    try {
-      const response = await fetch('https://api.moonshot.cn/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer sk-Urt1NPn0hyhDt6rQbfpsyMkgOUVrMGNYRGjUORqyD5gBKGer`,
-        },
-        body: JSON.stringify({
-          model: 'moonshot-v1-8k',
-          messages: [
-            {
-              role: 'system',
-              content: '请仔细阅读以下关于Casbin策略模型的描述，并根据其内容提供有帮助和准确的回答',
-            },
-            {
-              role: 'system',
-              content: `网页链接：CURRENT_PAGE_URL\n\n${currentFileContent}`,
-            },
-            ...history,
-          ],
-          temperature: 0.3,
-          stream: true,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`Error: ${response.status} - ${errorText}`);
-        return;
       }
 
-      const reader = response.body?.getReader();
-      if (!reader) {
-        throw new Error('Unable to read response body.');
-      }
+      history = [...history, { role: 'user', content: messageText }];
 
-      const decoder = new TextDecoder('utf-8');
-      let fullMessage = '';
+      try {
+        const response = await fetch('https://api.moonshot.cn/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer sk-Urt1NPn0hyhDt6rQbfpsyMkgOUVrMGNYRGjUORqyD5gBKGer`,
+          },
+          body: JSON.stringify({
+            model: 'moonshot-v1-8k',
+            messages: [
+              {
+                role: 'system',
+                content: '请仔细阅读以下关于Casbin策略模型的描述，并根据其内容提供有帮助和准确的回答',
+              },
+              {
+                role: 'system',
+                content: `网页链接：CURRENT_PAGE_URL\n\n${currentFileContent}`,
+              },
+              ...history,
+            ],
+            temperature: 0.3,
+            stream: true,
+          }),
+        });
 
-      const readStream = async () => {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          const chunk = decoder.decode(value, { stream: true });
-          const lines = chunk.split('\n');
-          for (const line of lines) {
-            if (line.trim() === '' || line.trim() === 'data: [DONE]') continue;
-            const content = JSON.parse(line.replace(/^data: /, '')).choices[0].delta?.content || '';
-            fullMessage += content;
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`Error: ${response.status} - ${errorText}`);
+          if (response.status === 429) {
             setState((prevState) => {
-              const updatedState = {
+              return {
                 ...prevState,
-                aiMessage: prevState.aiMessage + content,
+                messages: [...prevState.messages, { sender: 'assistant', text: '请求过多，请稍后重试。' }],
               };
-              return updatedState;
             });
           }
+          return;
         }
 
-        setState((prevState) => {
-          return {
-            ...prevState,
-            messages: [...prevState.messages, { sender: 'assistant', text: fullMessage }],
-            aiMessage: '',
-          };
-        });
-      };
+        const reader = response.body?.getReader();
+        if (!reader) {
+          throw new Error('Unable to read response body.');
+        }
 
-      readStream().catch((error) => {
-        console.error('Error reading stream:', error);
-      });
-    } catch (error) {
-      console.error('Error sending message:', error);
+        const decoder = new TextDecoder('utf-8');
+        let fullMessage = '';
+
+        const readStream = async () => {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value, { stream: true });
+            const lines = chunk.split('\n');
+            for (const line of lines) {
+              if (line.trim() === '' || line.trim() === 'data: [DONE]') continue;
+              const content = JSON.parse(line.replace(/^data: /, '')).choices[0].delta?.content || '';
+              fullMessage += content;
+              setState((prevState) => {
+                const updatedState = {
+                  ...prevState,
+                  aiMessage: prevState.aiMessage + content,
+                };
+                return updatedState;
+              });
+            }
+          }
+
+          setState((prevState) => {
+            return {
+              ...prevState,
+              messages: [...prevState.messages, { sender: 'assistant', text: fullMessage }],
+              aiMessage: '',
+            };
+          });
+        };
+
+        readStream().catch((error) => {
+          console.error('Error reading stream:', error);
+        });
+      } catch (error) {
+        console.error('Error sending message:', error);
+      }
+    },
+    [state, uploadFile],
+  );
+
+  useEffect(() => {
+    if (!initialMessageSentRef.current) {
+      sendMessage('为什么Enforcement Result的结果是这样？', true);
+      initialMessageSentRef.current = true;
     }
-  }, [state, uploadFile]);
+  }, [sendMessage]);
+
+  const handleSendMessage = useCallback(() => {
+    sendMessage(state.userInput);
+  }, [sendMessage, state.userInput]);
 
   const formatMessage = useCallback((message: string) => {
     return message
@@ -245,7 +259,10 @@ const ChatWindow: React.FC = () => {
           value={state.userInput}
           onChange={(e) => {
             setState((prevState) => {
-              return { ...prevState, userInput: e.target.value };
+              return {
+                ...prevState,
+                userInput: e.target.value,
+              };
             });
           }}
           className="flex-1 p-2 border border-gray-300 rounded"
