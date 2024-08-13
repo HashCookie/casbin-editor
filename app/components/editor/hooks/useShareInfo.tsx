@@ -25,6 +25,8 @@ export interface ShareFormat {
   customConfig?: string;
   request?: string;
   requestResult?: object;
+  sharedBy?: string;
+  sharedAt?: string;
 }
 
 async function dpaste(content: string) {
@@ -53,6 +55,8 @@ export default function useShareInfo() {
         return acc;
       }, {} as ShareFormat),
       modelKind: props.modelKind,
+      sharedBy: 'currentUser',
+      sharedAt: new Date().toISOString(),
     };
 
     // Check if there are any non-null values to share

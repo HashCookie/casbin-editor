@@ -23,6 +23,7 @@ import { extractPageContent } from '../../utils/contentExtractor';
 import { buttonPlugin } from './ButtonPlugin';
 import { useLang } from '@/app/context/LangContext';
 import LanguageMenu from '@/app/components/LanguageMenu';
+import PolicyHub from '@/app/components/PolicyHub';
 
 export const EditorScreen = () => {
   const {
@@ -41,6 +42,7 @@ export const EditorScreen = () => {
   });
   const [casbinVersion, setCasbinVersion] = useState('');
   const [showCustomConfig, setShowCustomConfig] = useState(false);
+  const [showPolicyHub, setShowPolicyHub] = useState(false);
   const sidePanelChatRef = useRef<{ openDrawer: (message: string) => void } | null>(null);
   const openDrawerWithMessage = (message: string) => {
     if (sidePanelChatRef.current) {
@@ -442,6 +444,20 @@ export const EditorScreen = () => {
             >
               {t('RUN THE TEST')}
             </button>
+            <button
+              className={clsx(
+                'rounded',
+                'px-2 py-1',
+                'border border-[#453d7d]',
+                'text-[#453d7a]',
+                'bg-[#efefef]',
+                'hover:bg-[#453d7d] hover:text-white',
+                'transition-colors duration-500',
+              )}
+              onClick={() => {return setShowPolicyHub(true)}}
+            >
+              {t('POLICY HUB')}
+            </button>
             {!share ? (
               <button
                 className={clsx(
@@ -518,6 +534,19 @@ export const EditorScreen = () => {
           </div>
         </div>
       </div>
+      {showPolicyHub && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+          <div className="bg-white p-4 rounded-lg w-3/4 h-3/4 overflow-auto">
+            <PolicyHub />
+            <button
+              className="mt-4 px-4 py-2 bg-red-500 text-white rounded"
+              onClick={() => {return setShowPolicyHub(false)}}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
