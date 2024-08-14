@@ -1,3 +1,4 @@
+"use client";
 import React from 'react';
 import PolicyHub from '@/app/components/PolicyHub';
 import Link from 'next/link';

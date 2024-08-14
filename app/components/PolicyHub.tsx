@@ -10,7 +10,6 @@ const PolicyHub: React.FC = () => {
   }, []);
 
   const fetchSharedPolicies = async (): Promise<ShareFormat[]> => {
-    // In a real application, this would be an API call to fetch shared policies
     return [
       {
         modelKind: 'basic',
