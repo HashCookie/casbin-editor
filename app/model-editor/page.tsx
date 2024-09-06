@@ -3,7 +3,7 @@
 import React from 'react';
 import { ModelEditor } from '../components/ModelEditor';
 
-const ModelEditorPage = ({ searchParams }: { searchParams: { model?: string } }) => {
+export default function ModelEditorPage({ searchParams }: { searchParams: { model?: string } }) {
   const initialValue = searchParams.model ? decodeURIComponent(searchParams.model) : '';
 
   return (
@@ -11,6 +11,4 @@ const ModelEditorPage = ({ searchParams }: { searchParams: { model?: string } })
       <ModelEditor initialValue={initialValue} />
     </div>
   );
-};
-
-export default ModelEditorPage;
+}
