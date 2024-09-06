@@ -4,7 +4,10 @@ import type { NextRequest } from 'next/server';
 export function middleware(request: NextRequest) {
   const response = NextResponse.next();
 
-  response.headers.set('Access-Control-Allow-Origin', '*');
+  // 获取请求的源
+  const origin = request.headers.get('origin') || '*';
+
+  response.headers.set('Access-Control-Allow-Origin', origin);
   response.headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
   response.headers.set('Access-Control-Allow-Headers', 'X-Requested-With,content-type');
   response.headers.set('Access-Control-Allow-Credentials', 'true');
