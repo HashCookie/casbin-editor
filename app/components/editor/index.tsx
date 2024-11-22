@@ -240,7 +240,7 @@ export const EditorScreen = () => {
                     indentUnit.of('    '),
                     EditorView.lineWrapping,
                     buttonPlugin(openDrawerWithMessage, extractContent, 'model'),
-                    linter(casbinLinter),
+                    linter((view) => {return casbinLinter(view, 'model')}),
                     lintGutter(),
                   ]}
                   className={'function flex-grow h-[300px]'}
@@ -267,6 +267,8 @@ export const EditorScreen = () => {
                     CasbinPolicySupport(),
                     indentUnit.of('    '),
                     EditorView.lineWrapping,
+                    linter((view) => {return casbinLinter(view, 'policy')}),
+                    lintGutter(),
                     buttonPlugin(openDrawerWithMessage, extractContent, 'policy'),
                   ]}
                   basicSetup={{

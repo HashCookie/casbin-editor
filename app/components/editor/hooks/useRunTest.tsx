@@ -86,108 +86,129 @@ function parseABACRequest(line: string): any[] {
 async function enforcer(props: RunTestProps) {
   const startTime = performance.now();
   const result: { request: string; okEx: boolean; reason: string[]; }[] = []; 
+  
   try {
-    const e = await newEnforcer(newModel(props.model), props.policy ? new StringAdapter(props.policy) : undefined);
+    // 先验证 model
+    try {
+      await newModel(props.model);
+    } catch (e) {
+      const errorMessage = (e as any).message;
+      setError(errorMessage, 'model');
+      props.onResponse(<div>{errorMessage}</div>);
+      return;
+    }
 
-    const customConfigCode = props.customConfig;
-    if (customConfigCode) {
-      try {
-        const builtinFunc = {
-          keyMatch: Util.keyMatchFunc,
-          keyGet: Util.keyGetFunc,
-          keyMatch2: Util.keyMatch2Func,
-          keyGet2: Util.keyGet2Func,
-          keyMatch3: Util.keyMatch3Func,
-          keyMatch4: Util.keyMatch4Func,
-          regexMatch: Util.regexMatchFunc,
-          ipMatch: Util.ipMatchFunc,
-          globMatch: Util.globMatch,
-        };
-
-        // eslint-disable-next-line
-        let config = eval(customConfigCode);
-        if (config) {
-          config = {
-            ...config,
-            functions: { ...config.functions, ...builtinFunc },
+    // 再验证 policy
+    try {
+      const e = await newEnforcer(
+        newModel(props.model), 
+        props.policy ? new StringAdapter(props.policy) : undefined
+      );
+      
+      const customConfigCode = props.customConfig;
+      if (customConfigCode) {
+        try {
+          const builtinFunc = {
+            keyMatch: Util.keyMatchFunc,
+            keyGet: Util.keyGetFunc,
+            keyMatch2: Util.keyMatch2Func,
+            keyGet2: Util.keyGet2Func,
+            keyMatch3: Util.keyMatch3Func,
+            keyMatch4: Util.keyMatch4Func,
+            regexMatch: Util.regexMatchFunc,
+            ipMatch: Util.ipMatchFunc,
+            globMatch: Util.globMatch,
           };
-          if (config?.functions) {
-            Object.keys(config.functions).forEach((key) => {
-              return e.addFunction(key, config.functions[key]);
-            });
-          }
 
-          const rm = e.getRoleManager() as DefaultRoleManager;
-          const matchingForGFunction = config.matchingForGFunction;
-          if (matchingForGFunction) {
-            if (typeof matchingForGFunction === 'function') {
-              await rm.addMatchingFunc(matchingForGFunction);
+          // eslint-disable-next-line
+          let config = eval(customConfigCode);
+          if (config) {
+            config = {
+              ...config,
+              functions: { ...config.functions, ...builtinFunc },
+            };
+            if (config?.functions) {
+              Object.keys(config.functions).forEach((key) => {
+                return e.addFunction(key, config.functions[key]);
+              });
             }
-            if (typeof matchingForGFunction === 'string') {
-              if (matchingForGFunction in config.functions) {
-                await rm.addMatchingFunc(config.functions[matchingForGFunction]);
-              } else {
-                props.onResponse(<div>Must sure the {matchingForGFunction}() in config.functions</div>);
-                return;
+
+            const rm = e.getRoleManager() as DefaultRoleManager;
+            const matchingForGFunction = config.matchingForGFunction;
+            if (matchingForGFunction) {
+              if (typeof matchingForGFunction === 'function') {
+                await rm.addMatchingFunc(matchingForGFunction);
+              }
+              if (typeof matchingForGFunction === 'string') {
+                if (matchingForGFunction in config.functions) {
+                  await rm.addMatchingFunc(config.functions[matchingForGFunction]);
+                } else {
+                  props.onResponse(<div>Must sure the {matchingForGFunction}() in config.functions</div>);
+                  return;
+                }
+              }
+            }
+
+            const matchingDomainForGFunction = config.matchingDomainForGFunction;
+            if (matchingDomainForGFunction) {
+              if (typeof matchingDomainForGFunction === 'function') {
+                await rm.addDomainMatchingFunc(matchingDomainForGFunction);
+              }
+              if (typeof matchingDomainForGFunction === 'string') {
+                if (matchingDomainForGFunction in config.functions) {
+                  await rm.addDomainMatchingFunc(config.functions[matchingDomainForGFunction]);
+                } else {
+                  props.onResponse(<div>Must sure the {matchingDomainForGFunction}() in config.functions</div>);
+                  return;
+                }
               }
             }
           }
-
-          const matchingDomainForGFunction = config.matchingDomainForGFunction;
-          if (matchingDomainForGFunction) {
-            if (typeof matchingDomainForGFunction === 'function') {
-              await rm.addDomainMatchingFunc(matchingDomainForGFunction);
-            }
-            if (typeof matchingDomainForGFunction === 'string') {
-              if (matchingDomainForGFunction in config.functions) {
-                await rm.addDomainMatchingFunc(config.functions[matchingDomainForGFunction]);
-              } else {
-                props.onResponse(<div>Must sure the {matchingDomainForGFunction}() in config.functions</div>);
-                return;
-              }
-            }
-          }
+        } catch (e) {
+          props.onResponse(<div>Please check syntax in Custom Function Editor: {(e as any).message}</div>);
+          return;
         }
-      } catch (e) {
-        props.onResponse(<div>Please check syntax in Custom Function Editor: {(e as any).message}</div>);
-        return;
       }
+
+      const requests = props.request.split('\n');
+
+      for (const n of requests) {
+        const line = n.trim();
+        if (!line) {
+          // @ts-ignore
+          result.push('// ignore');
+          continue;
+        }
+
+        if (line[0] === '#') {
+          // @ts-ignore
+          result.push('// ignore');
+          continue;
+        }
+
+        const rvals = parseABACRequest(n);
+        const ctx = newEnforceContext(props.enforceContextData);
+
+        const [okEx, reason] = await e.enforceEx(ctx, ...rvals);
+        result.push({ request: n, okEx, reason });
+      }
+
+      const stopTime = performance.now();
+
+      setError(null, 'policy');
+      props.onResponse(<div>{'Done in ' + (stopTime - startTime).toFixed(2) + 'ms'}</div>);
+      props.onResponse(result);
+    } catch (e) {
+      const errorMessage = (e as any).message;
+      setError(errorMessage, 'policy');
+      props.onResponse(<div>{errorMessage}</div>);
+      props.onResponse([]);
     }
-
-    const requests = props.request.split('\n');
-
-    for (const n of requests) {
-      const line = n.trim();
-      if (!line) {
-        // @ts-ignore
-        result.push('// ignore');
-        continue;
-      }
-
-      if (line[0] === '#') {
-        // @ts-ignore
-        result.push('// ignore');
-        continue;
-      }
-
-      const rvals = parseABACRequest(n);
-      const ctx = newEnforceContext(props.enforceContextData);
-
-      const [okEx, reason] = await e.enforceEx(ctx, ...rvals);
-      result.push({ request: n, okEx, reason });
-    }
-
-    const stopTime = performance.now();
-
-    setError(null);
-
-    props.onResponse(<div>{'Done in ' + (stopTime - startTime).toFixed(2) + 'ms'}</div>);
-    props.onResponse(result);
   } catch (e) {
     const errorMessage = (e as any).message;
+    setError(errorMessage, 'policy');
     props.onResponse(<div>{errorMessage}</div>);
     props.onResponse([]);
-    setError(errorMessage);
   }
 }
 

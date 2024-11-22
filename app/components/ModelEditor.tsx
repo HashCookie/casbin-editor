@@ -19,9 +19,9 @@ export const ModelEditor = () => {
   const validateModel = useCallback(async (text: string) => {
     try {
       await newModel(text);
-      setError(null);
+      setError(null, 'model');
     } catch (e) {
-      setError((e as Error).message);
+      setError((e as Error).message, 'model');
     }
   }, []);
 
@@ -91,7 +91,7 @@ export const ModelEditor = () => {
             CasbinConfSupport(),
             indentUnit.of('    '),
             EditorView.lineWrapping,
-            linter(casbinLinter),
+            linter((view) => {return casbinLinter(view, 'model')}),
             lintGutter(),
             EditorView.updateListener.of((update) => {
               if (update.docChanged) {
