@@ -39,7 +39,7 @@ export const CustomConfigPanel: React.FC<CustomConfigPanelProps> = ({
   const addNewFunction = () => {
     const newFunction = {
       id: Date.now().toString(),
-      name: `customFunction${functions.length + 1}`,
+      name: `my_func${functions.length + 1}`,
       body: '(arg1, arg2) => {\n  return arg1.endsWith(arg2);\n}',
     };
     setFunctions([...functions, newFunction]);
@@ -67,12 +67,72 @@ export const CustomConfigPanel: React.FC<CustomConfigPanelProps> = ({
     updateCustomConfig(updatedFunctions);
   };
 
+  // Add new matching function
+  const addMatchingFunction = () => {
+    if (
+      functions.some((f) => {
+        return f.name === 'matchingForGFunction';
+      })
+    ) {
+      alert('Role Matching Function already exists!');
+      return;
+    }
+
+    const template = {
+      id: Date.now().toString(),
+      name: 'matchingForGFunction',
+      body: `(user, role) => {
+  return user.department === role.department;
+}`,
+    };
+    setFunctions([...functions, template]);
+    updateCustomConfig([...functions, template]);
+  };
+
+  // Add new matching domain function
+  const addMatchingDomainFunction = () => {
+    if (
+      functions.some((f) => {
+        return f.name === 'matchingDomainForGFunction';
+      })
+    ) {
+      alert('Domain Matching Function already exists!');
+      return;
+    }
+
+    const template = {
+      id: Date.now().toString(),
+      name: 'matchingDomainForGFunction',
+      body: `(domain1, domain2) => {
+  return domain1.startsWith(domain2);
+}`,
+    };
+    setFunctions([...functions, template]);
+    updateCustomConfig([...functions, template]);
+  };
+
   // Generate a complete configuration string.
   const updateCustomConfig = (updatedFunctions: FunctionConfig[]) => {
-    const functionsString = updatedFunctions
+    const regularFunctions: FunctionConfig[] = [];
+    let matchingFn = '';
+    let matchingDomainFn = '';
+
+    // Classification processing function
+    updatedFunctions.forEach((f) => {
+      if (f.name === 'matchingForGFunction') {
+        matchingFn = f.body;
+      } else if (f.name === 'matchingDomainForGFunction') {
+        matchingDomainFn = f.body;
+      } else {
+        regularFunctions.push(f);
+      }
+    });
+
+    // Generate regular function string
+    const functionsString = regularFunctions
       .map((f) => {
         return `
-      ${f.name}: ${f.body}
+        ${f.name}: ${f.body}
     `;
       })
       .join(',\n');
@@ -82,8 +142,8 @@ export const CustomConfigPanel: React.FC<CustomConfigPanelProps> = ({
         functions: {
           ${functionsString}
         },
-        matchingForGFunction: undefined,
-        matchingDomainForGFunction: undefined
+        matchingForGFunction: ${matchingFn || 'undefined'},
+        matchingDomainForGFunction: ${matchingDomainFn || 'undefined'}
       };
     })();`;
 
@@ -135,6 +195,7 @@ export const CustomConfigPanel: React.FC<CustomConfigPanelProps> = ({
                       }}
                       className="px-2 py-1 border rounded"
                       placeholder={t('Function name')}
+                      disabled={func.name === 'matchingForGFunction' || func.name === 'matchingDomainForGFunction'}
                     />
                     <button
                       onClick={() => {
@@ -175,21 +236,50 @@ export const CustomConfigPanel: React.FC<CustomConfigPanelProps> = ({
             })}
           </div>
 
-          <button
-            onClick={addNewFunction}
-            className={clsx(
-              'px-3 py-1',
-              'border border-[#453d7d]',
-              'text-[#453d7a]',
-              'bg-[#efefef]',
-              'rounded',
-              'hover:bg-[#453d7d] hover:text-white',
-              'transition-colors duration-500',
-              'm-1 mb-0',
-            )}
-          >
-            {t('Add Function')}
-          </button>
+          <div className="flex gap-2 m-1 mb-0 text-xs">
+            <button
+              onClick={addNewFunction}
+              className={clsx(
+                'px-3 py-1',
+                'border border-[#453d7d]',
+                'text-[#453d7a]',
+                'bg-[#efefef]',
+                'rounded',
+                'hover:bg-[#453d7d] hover:text-white',
+                'transition-colors duration-500',
+              )}
+            >
+              {t('Add Function')}
+            </button>
+            <button
+              onClick={addMatchingFunction}
+              className={clsx(
+                'px-3 py-1',
+                'border border-[#453d7d]',
+                'text-[#453d7a]',
+                'bg-[#efefef]',
+                'rounded',
+                'hover:bg-[#453d7d] hover:text-white',
+                'transition-colors duration-500',
+              )}
+            >
+              {t('Add Role Matching')}
+            </button>
+            <button
+              onClick={addMatchingDomainFunction}
+              className={clsx(
+                'px-3 py-1',
+                'border border-[#453d7d]',
+                'text-[#453d7a]',
+                'bg-[#efefef]',
+                'rounded',
+                'hover:bg-[#453d7d] hover:text-white',
+                'transition-colors duration-500',
+              )}
+            >
+              {t('Add Domain Matching')}
+            </button>
+          </div>
         </div>
       )}
     </>
