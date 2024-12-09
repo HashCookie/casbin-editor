@@ -1,12 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { clsx } from 'clsx';
 import CodeMirror from '@uiw/react-codemirror';
 import { monokai } from '@uiw/codemirror-theme-monokai';
 import { basicSetup } from 'codemirror';
 import { indentUnit } from '@codemirror/language';
-import { go } from '@codemirror/legacy-modes/mode/go';
 import { StreamLanguage } from '@codemirror/language';
+import { go } from '@codemirror/legacy-modes/mode/go';
 import { EditorView } from '@codemirror/view';
+
+interface FunctionConfig {
+  id: string;
+  name: string;
+  body: string;
+}
 
 interface CustomConfigPanelProps {
   open: boolean;
@@ -27,6 +33,63 @@ export const CustomConfigPanel: React.FC<CustomConfigPanelProps> = ({
   textClass,
   t,
 }) => {
+  const [functions, setFunctions] = useState<FunctionConfig[]>([]);
+
+  // Add new function
+  const addNewFunction = () => {
+    const newFunction = {
+      id: Date.now().toString(),
+      name: `customFunction${functions.length + 1}`,
+      body: '(arg1, arg2) => {\n  return arg1.endsWith(arg2);\n}',
+    };
+    setFunctions([...functions, newFunction]);
+    updateCustomConfig([...functions, newFunction]);
+  };
+
+  // Delete function
+  const deleteFunction = (id: string) => {
+    const updatedFunctions = functions.filter((f) => {
+      return f.id !== id;
+    });
+    setFunctions(updatedFunctions);
+    updateCustomConfig(updatedFunctions);
+  };
+
+  // Update function content
+  const updateFunction = (id: string, field: keyof FunctionConfig, value: string) => {
+    const updatedFunctions = functions.map((f) => {
+      if (f.id === id) {
+        return { ...f, [field]: value };
+      }
+      return f;
+    });
+    setFunctions(updatedFunctions);
+    updateCustomConfig(updatedFunctions);
+  };
+
+  // Generate a complete configuration string.
+  const updateCustomConfig = (updatedFunctions: FunctionConfig[]) => {
+    const functionsString = updatedFunctions
+      .map((f) => {
+        return `
+      ${f.name}: ${f.body}
+    `;
+      })
+      .join(',\n');
+
+    const configString = `(function() {
+      return {
+        functions: {
+          ${functionsString}
+        },
+        matchingForGFunction: undefined,
+        matchingDomainForGFunction: undefined
+      };
+    })();`;
+
+    setCustomConfigPersistent(configString);
+  };
+
   return (
     <>
       <button
@@ -53,30 +116,81 @@ export const CustomConfigPanel: React.FC<CustomConfigPanelProps> = ({
         </svg>
       </button>
 
-      <div className={'pt-6 h-12 pl-2 flex items-center font-bold'}>
-        {(showCustomConfig || open) && <div className={textClass}>{t('Custom config')}</div>}
-      </div>
-
-      <div className="flex-grow overflow-auto h-full">
-        {(showCustomConfig || open) && (
-          <div className="flex flex-col h-full">
-            <CodeMirror
-              height="100%"
-              onChange={setCustomConfigPersistent}
-              theme={monokai}
-              basicSetup={{
-                lineNumbers: true,
-                highlightActiveLine: true,
-                bracketMatching: true,
-                indentOnInput: true,
-              }}
-              extensions={[basicSetup, StreamLanguage.define(go), indentUnit.of('    '), EditorView.lineWrapping]}
-              className="function flex-grow"
-              value={customConfig}
-            />
+      {(showCustomConfig || open) && (
+        <div className="flex flex-col h-full">
+          <div className={'pt-6 h-12 pl-2 flex items-center font-bold'}>
+            <div className={textClass}>{t('Custom Functions')}</div>
           </div>
-        )}
-      </div>
+
+          <div className="flex-grow overflow-auto " style={{ height: '100vh' }}>
+            {functions.map((func) => {
+              return (
+                <div key={func.id} className="bg-gray-100 rounded-lg flex flex-col" style={{ height: '50%' }}>
+                  <div className="flex justify-between items-center p-2">
+                    <input
+                      type="text"
+                      value={func.name}
+                      onChange={(e) => {
+                        return updateFunction(func.id, 'name', e.target.value);
+                      }}
+                      className="px-2 py-1 border rounded"
+                      placeholder={t('Function name')}
+                    />
+                    <button
+                      onClick={() => {
+                        return deleteFunction(func.id);
+                      }}
+                      className="w-6 h-6 flex items-center justify-center text-gray-500 hover:text-red-500 transition-colors"
+                      title={t('Delete')}
+                    >
+                      <svg viewBox="0 0 24 24" className="w-4 h-4">
+                        <path
+                          fill="currentColor"
+                          d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+
+                  <div className="flex-1">
+                    <CodeMirror
+                      value={func.body}
+                      height="100%"
+                      theme={monokai}
+                      onChange={(value) => {
+                        return updateFunction(func.id, 'body', value);
+                      }}
+                      basicSetup={{
+                        lineNumbers: true,
+                        highlightActiveLine: true,
+                        bracketMatching: true,
+                        indentOnInput: true,
+                      }}
+                      extensions={[basicSetup, StreamLanguage.define(go), indentUnit.of('    '), EditorView.lineWrapping]}
+                      className="h-full"
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <button
+            onClick={addNewFunction}
+            className={clsx(
+              'px-3 py-1',
+              'border border-[#453d7d]',
+              'text-[#453d7a]',
+              'bg-[#efefef]',
+              'rounded',
+              'hover:bg-[#453d7d] hover:text-white',
+              'transition-colors duration-500',
+            )}
+          >
+            {t('Add Function')}
+          </button>
+        </div>
+      )}
     </>
   );
 };
