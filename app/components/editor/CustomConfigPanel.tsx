@@ -185,6 +185,7 @@ export const CustomConfigPanel: React.FC<CustomConfigPanelProps> = ({
               'rounded',
               'hover:bg-[#453d7d] hover:text-white',
               'transition-colors duration-500',
+              'm-1 mb-0',
             )}
           >
             {t('Add Function')}

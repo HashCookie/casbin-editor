@@ -113,10 +113,10 @@ export const EditorScreen = () => {
     <div className="flex flex-col sm:flex-row h-full">
       <Toaster position="top-center" />
       <div
-        className={clsx('sm:relative', 'pl-0 sm:pl-2 pr-0 sm:pr-2 border-r border-[#dddddd]', 'transition-all duration-300', {
+        className={clsx('sm:relative border-r border-[#dddddd]', 'transition-all duration-300', {
           'hidden sm:block': !showCustomConfig,
           block: showCustomConfig,
-          'sm:w-72': open,
+          'sm:w-1/3': open,
           'sm:w-5': !open,
         })}
       >
