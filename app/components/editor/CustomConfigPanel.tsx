@@ -237,7 +237,7 @@ export const CustomConfigPanel: React.FC<CustomConfigPanelProps> = ({
           <div className="flex-grow overflow-auto " style={{ height: '100vh' }}>
             {functions.map((func) => {
               return (
-                <div key={func.id} className="bg-gray-100 rounded-lg flex flex-col" style={{ height: '50%' }}>
+                <div key={func.id} className="bg-gray-100 rounded-lg flex flex-col" style={{ maxHeight: '50%' }}>
                   <div className="flex justify-between items-center p-2">
                     <input
                       type="text"
@@ -245,7 +245,7 @@ export const CustomConfigPanel: React.FC<CustomConfigPanelProps> = ({
                       onChange={(e) => {
                         return updateFunction(func.id, 'name', e.target.value);
                       }}
-                      className="px-2 py-1 border rounded"
+                      className="px-2 py-1 border rounded w-64"
                       placeholder={t('Function name')}
                       disabled={func.name === 'matchingForGFunction' || func.name === 'matchingDomainForGFunction'}
                     />
@@ -265,7 +265,7 @@ export const CustomConfigPanel: React.FC<CustomConfigPanelProps> = ({
                     </button>
                   </div>
 
-                  <div className="flex-1">
+                  <div className="flex-1 overflow-auto">
                     <CodeMirror
                       value={func.body}
                       height="100%"
