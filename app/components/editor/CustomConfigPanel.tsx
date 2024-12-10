@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { clsx } from 'clsx';
 import CodeMirror from '@uiw/react-codemirror';
 import { monokai } from '@uiw/codemirror-theme-monokai';
@@ -34,6 +34,54 @@ export const CustomConfigPanel: React.FC<CustomConfigPanelProps> = ({
   t,
 }) => {
   const [functions, setFunctions] = useState<FunctionConfig[]>([]);
+  const [isEditing, setIsEditing] = useState(false);
+  const previousConfig = useRef(customConfig);
+
+  const parseConfig = (configStr: string) => {
+    try {
+      const config = eval(configStr) as {
+        functions?: Record<string, Function | string>;
+        matchingForGFunction?: Function | string;
+        matchingDomainForGFunction?: Function | string;
+      };
+
+      const newFunctions: FunctionConfig[] = [];
+
+      if (config?.functions) {
+        Object.entries(config.functions).forEach(([name, body]) => {
+          newFunctions.push({
+            id: `${Date.now()}-${Math.random()}`,
+            name,
+            body: body.toString(),
+          });
+        });
+      }
+
+      ['matchingForGFunction', 'matchingDomainForGFunction'].forEach((fnName) => {
+        if (config?.[fnName as keyof typeof config]) {
+          newFunctions.push({
+            id: `${Date.now()}-${Math.random()}`,
+            name: fnName,
+            body: config[fnName as keyof typeof config]!.toString(),
+          });
+        }
+      });
+
+      return newFunctions;
+    } catch (error) {
+      return null;
+    }
+  };
+
+  useEffect(() => {
+    if (!isEditing && customConfig !== previousConfig.current) {
+      const parsedFunctions = parseConfig(customConfig);
+      if (parsedFunctions) {
+        setFunctions(parsedFunctions);
+        previousConfig.current = customConfig;
+      }
+    }
+  }, [customConfig, isEditing]);
 
   // Add new function
   const addNewFunction = () => {
@@ -113,41 +161,45 @@ export const CustomConfigPanel: React.FC<CustomConfigPanelProps> = ({
 
   // Generate a complete configuration string.
   const updateCustomConfig = (updatedFunctions: FunctionConfig[]) => {
-    const regularFunctions: FunctionConfig[] = [];
-    let matchingFn = '';
-    let matchingDomainFn = '';
+    setIsEditing(true);
 
-    // Classification processing function
-    updatedFunctions.forEach((f) => {
-      if (f.name === 'matchingForGFunction') {
-        matchingFn = f.body;
-      } else if (f.name === 'matchingDomainForGFunction') {
-        matchingDomainFn = f.body;
-      } else {
-        regularFunctions.push(f);
-      }
+    const regularFunctions = updatedFunctions.filter((f) => {
+      return !['matchingForGFunction', 'matchingDomainForGFunction'].includes(f.name);
     });
 
-    // Generate regular function string
+    const specialFunctions = {
+      matchingForGFunction:
+        updatedFunctions.find((f) => {
+          return f.name === 'matchingForGFunction';
+        })?.body || 'undefined',
+      matchingDomainForGFunction:
+        updatedFunctions.find((f) => {
+          return f.name === 'matchingDomainForGFunction';
+        })?.body || 'undefined',
+    };
+
     const functionsString = regularFunctions
       .map((f) => {
-        return `
-        ${f.name}: ${f.body}
-    `;
+        return `${f.name}: ${f.body}`;
       })
-      .join(',\n');
+      .join(',\n        ');
 
     const configString = `(function() {
       return {
         functions: {
           ${functionsString}
         },
-        matchingForGFunction: ${matchingFn || 'undefined'},
-        matchingDomainForGFunction: ${matchingDomainFn || 'undefined'}
+        matchingForGFunction: ${specialFunctions.matchingForGFunction},
+        matchingDomainForGFunction: ${specialFunctions.matchingDomainForGFunction}
       };
     })();`;
 
     setCustomConfigPersistent(configString);
+    previousConfig.current = configString;
+
+    setTimeout(() => {
+      return setIsEditing(false);
+    }, 0);
   };
 
   return (
