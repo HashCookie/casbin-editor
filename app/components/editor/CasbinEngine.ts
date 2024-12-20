@@ -1,7 +1,6 @@
-import { newEnforcer, newModel, StringAdapter, DefaultRoleManager, Util as CasbinUtil } from 'casbin';
+import { newEnforcer, newModel, StringAdapter } from 'casbin';
 import { remoteEnforcer } from './hooks/useRemoteEnforcer';
-import { parseABACRequest } from '../../utils/utils';
-import { newEnforceContext } from '@/app/components/editor/hooks/useSetupEnforceContext';
+import { processRequests } from '@/app/utils/casbinUtils';
 import { setupRoleManager, setupCustomConfig } from '@/app/utils/casbinUtils';
 
 interface EnforceResult {
@@ -32,27 +31,13 @@ export class NodeCasbinEngine implements ICasbinEngine {
         params.policy ? new StringAdapter(params.policy) : undefined
       );
 
-      setupRoleManager(e); // Configure RoleManager
+      setupRoleManager(e);
 
       if (params.customConfig) {
         await setupCustomConfig(e, params.customConfig);
       }
 
-      const requests = params.request.split('\n').filter((line) => {
-        return line.trim();
-      });
-      const results = await Promise.all(
-        requests.map(async (request) => {
-          if (!request || request[0] === '#') {
-            return { request, okEx: false, reason: ['ignored'] };
-          }
-
-          const rvals = parseABACRequest(request);
-          const ctx = newEnforceContext(params.enforceContextData);
-          const [okEx, reason] = await e.enforceEx(ctx, ...rvals);
-          return { request, okEx, reason };
-        }),
-      );
+      const results = await processRequests(params.request, e, params.enforceContextData);
 
       return {
         allowed: results[0].okEx,

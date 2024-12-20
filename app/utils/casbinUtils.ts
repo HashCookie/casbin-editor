@@ -1,4 +1,6 @@
 import { Enforcer, DefaultRoleManager, Util as CasbinUtil } from 'casbin';
+import { newEnforceContext } from '@/app/components/editor/hooks/useSetupEnforceContext';
+import { parseABACRequest } from './utils';
 
 /**
  * Configure custom functions and RoleManager
@@ -24,7 +26,6 @@ export async function setupCustomConfig(enforcer: Enforcer, customConfig: string
     // Use eval to parse custom configuration (assuming the format is a JavaScript object).
     let config = eval(customConfig);
     if (config) {
-      // Merge custom functions and built-in functions
       config = {
         ...config,
         functions: { ...config.functions, ...builtinFunc },
@@ -75,4 +76,35 @@ export function setupRoleManager(enforcer: Enforcer): void {
     const roleManager = new DefaultRoleManager(10);
     enforcer.setRoleManager(roleManager);
   }
+}
+
+/**
+ * @param request Request string, one request per line.
+ * @param enforcer Casbin Enforcer instance
+ * @param enforceContextData Context data
+ * @returns Request result array
+ */
+export async function processRequests(
+  request: string,
+  enforcer: any,
+  enforceContextData: Map<string, string> = new Map<string, string>(),
+): Promise<{ request: string; okEx: boolean; reason: string[] }[]> {
+  const requests = request.split('\n').filter((line) => {
+    return line.trim();
+  });
+
+  const results = await Promise.all(
+    requests.map(async (line) => {
+      if (!line || line[0] === '#') {
+        return { request: line, okEx: false, reason: ['ignored'] };
+      }
+
+      const rvals = parseABACRequest(line);
+      const ctx = newEnforceContext(enforceContextData);
+      const [okEx, reason] = await enforcer.enforceEx(ctx, ...rvals);
+      return { request: line, okEx, reason };
+    }),
+  );
+
+  return results;
 }
