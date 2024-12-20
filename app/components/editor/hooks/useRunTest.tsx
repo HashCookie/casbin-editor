@@ -35,6 +35,7 @@ async function enforcer(props: RunTestProps) {
     const requests = props.request.split('\n').filter((line) => {
       return line.trim();
     });
+
     const results = await Promise.all(
       requests.map(async (request) => {
         if (!request || request[0] === '#') {
@@ -61,15 +62,19 @@ async function enforcer(props: RunTestProps) {
     props.onResponse(<div className="text-green-500">{'Done in ' + (stopTime - startTime).toFixed(2) + 'ms'}</div>);
 
     const hasError = results.some((r) => {
-      return r.reason.includes('Error occurred during enforcement');
+      return r.reason.some((reason) => {
+        return reason.includes('Error');
+      });
     });
     if (hasError) {
       const errors = results
         .filter((r) => {
-          return r.reason.includes('Error occurred during enforcement');
+          return r.reason.some((reason) => {
+            return reason.includes('Error');
+          });
         })
         .map((r) => {
-          return r.reason.join('\n');
+          return `${r.request}: ${r.reason.join(', ')}`;
         });
       throw new Error(errors.join('\n'));
     }
