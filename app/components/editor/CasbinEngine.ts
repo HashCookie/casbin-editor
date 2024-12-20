@@ -2,6 +2,7 @@ import { newEnforcer, newModel, StringAdapter, DefaultRoleManager, Util as Casbi
 import { remoteEnforcer } from './hooks/useRemoteEnforcer';
 import { parseABACRequest } from '../../utils/utils';
 import { newEnforceContext } from '@/app/components/editor/hooks/useSetupEnforceContext';
+import { setupRoleManager, setupCustomConfig } from '@/app/utils/casbinUtils';
 
 interface EnforceResult {
   allowed: boolean;
@@ -26,64 +27,15 @@ export interface ICasbinEngine {
 export class NodeCasbinEngine implements ICasbinEngine {
   async enforce(params) {
     try {
-      const e = await newEnforcer(newModel(params.model), params.policy ? new StringAdapter(params.policy) : undefined);
+      const e = await newEnforcer(
+        newModel(params.model),
+        params.policy ? new StringAdapter(params.policy) : undefined
+      );
 
-      if (!e.getRoleManager()) {
-        const roleManager = new DefaultRoleManager(10);
-        e.setRoleManager(roleManager);
-      }
+      setupRoleManager(e); // Configure RoleManager
 
       if (params.customConfig) {
-        try {
-          const builtinFunc = {
-            keyMatch: CasbinUtil.keyMatchFunc,
-            keyGet: CasbinUtil.keyGetFunc,
-            keyMatch2: CasbinUtil.keyMatch2Func,
-            keyGet2: CasbinUtil.keyGet2Func,
-            keyMatch3: CasbinUtil.keyMatch3Func,
-            keyMatch4: CasbinUtil.keyMatch4Func,
-            regexMatch: CasbinUtil.regexMatchFunc,
-            ipMatch: CasbinUtil.ipMatchFunc,
-            globMatch: CasbinUtil.globMatch,
-          };
-
-          // eslint-disable-next-line
-          let config = eval(params.customConfig);
-          if (config) {
-            config = {
-              ...config,
-              functions: { ...config.functions, ...builtinFunc },
-            };
-
-            // 添加自定义函数
-            if (config?.functions) {
-              Object.keys(config.functions).forEach((key) => {
-                e.addFunction(key, config.functions[key]);
-              });
-            }
-
-            // 处理角色匹配函数
-            const rm = e.getRoleManager() as DefaultRoleManager;
-            if (config.matchingForGFunction) {
-              if (typeof config.matchingForGFunction === 'function') {
-                await rm.addMatchingFunc(config.matchingForGFunction);
-              } else if (typeof config.matchingForGFunction === 'string' && config.matchingForGFunction in config.functions) {
-                await rm.addMatchingFunc(config.functions[config.matchingForGFunction]);
-              }
-            }
-
-            // 处理域匹配函数
-            if (config.matchingDomainForGFunction) {
-              if (typeof config.matchingDomainForGFunction === 'function') {
-                await rm.addDomainMatchingFunc(config.matchingDomainForGFunction);
-              } else if (typeof config.matchingDomainForGFunction === 'string' && config.matchingDomainForGFunction in config.functions) {
-                await rm.addDomainMatchingFunc(config.functions[config.matchingDomainForGFunction]);
-              }
-            }
-          }
-        } catch (error) {
-          throw new Error(`Please check syntax in Custom Function Editor: ${error as any}`);
-        }
+        await setupCustomConfig(e, params.customConfig);
       }
 
       const requests = params.request.split('\n').filter((line) => {
