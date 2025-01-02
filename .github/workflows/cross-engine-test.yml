@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - master
-      - test_jest_configuration
   pull_request:
     branches:
       - master
@@ -22,18 +21,29 @@ jobs:
         with:
           node-version: '20.8.1'
 
-      # 设置 Java 环境
+      # 设置 Java 环境，移除 Maven 缓存配置
       - name: Set up JDK
         uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
           java-version: '17'
-          cache: 'maven'
 
-      # 安装并构建 casbin-java-cli
+      # 克隆 casbin-java-cli
+      - name: Clone casbin-java-cli
+        run: git clone https://github.com/jcasbin/casbin-java-cli.git
+
+      # 设置 Maven 缓存（移到克隆之后）
+      - name: Setup Maven Cache
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('casbin-java-cli/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      # 构建 casbin-java-cli
       - name: Build casbin-java-cli
         run: |
-          git clone https://github.com/jcasbin/casbin-java-cli.git
           cd casbin-java-cli
           mvn clean install
           sudo cp target/casbin-java-cli-*-jar-with-dependencies.jar /usr/local/bin/casbin-java-cli.jar
