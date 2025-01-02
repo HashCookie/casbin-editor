@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - test_jest_configuration
   pull_request:
     branches:
       - master
@@ -20,6 +21,26 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20.8.1'
+
+      # 设置 Java 环境
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'maven'
+
+      # 安装并构建 casbin-java-cli
+      - name: Build casbin-java-cli
+        run: |
+          git clone https://github.com/jcasbin/casbin-java-cli.git
+          cd casbin-java-cli
+          mvn clean install
+          sudo cp target/casbin-java-cli-*-jar-with-dependencies.jar /usr/local/bin/casbin-java-cli.jar
+          echo '#!/bin/bash' | sudo tee /usr/local/bin/casbin-java-cli
+          echo 'java -jar /usr/local/bin/casbin-java-cli.jar "$@"' | sudo tee -a /usr/local/bin/casbin-java-cli
+          sudo chmod +x /usr/local/bin/casbin-java-cli
+          cd ..
 
       - name: Install dependencies
         run: yarn install
