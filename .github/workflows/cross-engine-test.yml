@@ -47,7 +47,9 @@ jobs:
         run: |
           cd casbin-java-cli
           mvn clean install
-          sudo cp target/casbin-java-cli-*-jar-with-dependencies.jar /usr/local/bin/casbin-java-cli.jar
+          echo "Listing target directory contents:"
+          ls -la target/
+          sudo cp target/casbin-java-cli-1.0-SNAPSHOT.jar /usr/local/bin/casbin-java-cli.jar
           echo '#!/bin/bash' | sudo tee /usr/local/bin/casbin-java-cli
           echo 'java -jar /usr/local/bin/casbin-java-cli.jar "$@"' | sudo tee -a /usr/local/bin/casbin-java-cli
           sudo chmod +x /usr/local/bin/casbin-java-cli
