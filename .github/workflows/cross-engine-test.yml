@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - master
-      - test_jest_configuration
   pull_request:
     branches:
       - master
@@ -22,18 +21,15 @@ jobs:
         with:
           node-version: '20.8.1'
 
-      # 设置 Java 环境，移除 Maven 缓存配置
       - name: Set up JDK
         uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      # 克隆 casbin-java-cli
       - name: Clone casbin-java-cli
         run: git clone https://github.com/jcasbin/casbin-java-cli.git
 
-      # 设置 Maven 缓存（移到克隆之后）
       - name: Setup Maven Cache
         uses: actions/cache@v3
         with:
@@ -42,30 +38,38 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
 
-      # 构建 casbin-java-cli
       - name: Build casbin-java-cli
         run: |
           cd casbin-java-cli
           mvn clean install
           echo "Listing target directory contents:"
           ls -la target/
-          sudo cp target/casbin-java-cli-1.0-SNAPSHOT.jar /usr/local/bin/casbin-java-cli.jar
-          echo '#!/bin/bash' | sudo tee /usr/local/bin/casbin-java-cli
-          echo 'java -jar /usr/local/bin/casbin-java-cli.jar "$@"' | sudo tee -a /usr/local/bin/casbin-java-cli
+          sudo mkdir -p /usr/local/casbin
+          sudo cp target/casbin-java-cli-1.0-SNAPSHOT.jar /usr/local/casbin/casbin-java-cli.jar
+          sudo tee /usr/local/bin/casbin-java-cli << 'EOF'
+          #!/bin/bash
+          java -jar /usr/local/casbin/casbin-java-cli.jar "$@"
+          EOF
           sudo chmod +x /usr/local/bin/casbin-java-cli
-          # 确保 /usr/local/bin 在 PATH 中
-          echo "PATH=/usr/local/bin:$PATH" >> $GITHUB_ENV
           cd ..
 
-      # 验证安装
-      - name: Verify casbin-java-cli installation
+      - name: Verify installation
         run: |
-          echo "Current PATH: $PATH"
-          which casbin-java-cli
+          echo "Verifying casbin-java-cli installation..."
+          ls -l /usr/local/bin/casbin-java-cli
+          ls -l /usr/local/casbin/casbin-java-cli.jar
+          echo "PATH=$PATH"
+          which casbin-java-cli || true
           casbin-java-cli --version || true
 
       - name: Install dependencies
         run: yarn install
 
       - name: Run tests
-        run: yarn test 
+        env:
+          PATH: /usr/local/bin:${{ env.PATH }}
+        run: |
+          export PATH="/usr/local/bin:$PATH"
+          echo "Current PATH: $PATH"
+          which casbin-java-cli
+          yarn test 
