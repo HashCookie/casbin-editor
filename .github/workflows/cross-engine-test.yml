@@ -59,18 +59,14 @@ jobs:
           echo "Verifying casbin-java-cli installation..."
           ls -l /usr/local/bin/casbin-java-cli
           ls -l /usr/local/casbin/casbin-java-cli.jar
-          echo "PATH=$PATH"
-          which casbin-java-cli || true
-          casbin-java-cli --version || true
 
       - name: Install dependencies
         run: yarn install
 
       - name: Run tests
         env:
-          PATH: /usr/local/bin:${{ env.PATH }}
+          PATH: /usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin:${{ env.PATH }}
         run: |
-          export PATH="/usr/local/bin:$PATH"
           echo "Current PATH: $PATH"
-          which casbin-java-cli
+          /usr/bin/which casbin-java-cli
           yarn test 
