@@ -53,7 +53,16 @@ jobs:
           echo '#!/bin/bash' | sudo tee /usr/local/bin/casbin-java-cli
           echo 'java -jar /usr/local/bin/casbin-java-cli.jar "$@"' | sudo tee -a /usr/local/bin/casbin-java-cli
           sudo chmod +x /usr/local/bin/casbin-java-cli
+          # 确保 /usr/local/bin 在 PATH 中
+          echo "PATH=/usr/local/bin:$PATH" >> $GITHUB_ENV
           cd ..
+
+      # 验证安装
+      - name: Verify casbin-java-cli installation
+        run: |
+          echo "Current PATH: $PATH"
+          which casbin-java-cli
+          casbin-java-cli --version || true
 
       - name: Install dependencies
         run: yarn install
