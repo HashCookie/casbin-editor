@@ -28,7 +28,7 @@ export const DEFAULT_ENDPOINT = 'door.casdoor.com';
 
 export async function remoteEnforcer(props: RemoteEnforcerProps) {
   try {
-    const baseUrl = `https://${window.localStorage.getItem('casbinEndpoint') || DEFAULT_ENDPOINT}/api/run-casbin-command`;
+    const baseUrl = 'https://door.casdoor.com/api/run-casbin-command';
     const args = [
       'enforceEx',
       '-m',
