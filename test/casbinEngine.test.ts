@@ -14,17 +14,28 @@ describe('Casbin Engine Tests', () => {
   describe('Cross-engine enforcement consistency', () => {
     Object.entries(example).forEach(([key, testCase]) => {
       test(`should return consistent enforcement result for ${testCase.name}`, async () => {
+        console.log('Starting test for:', testCase.name);
         const nodeEnforcer = await newEnforcer(newModel(testCase.model), new StringAdapter(testCase.policy || ' '));
+
+        console.log('Remote engines configuration:', 
+          Object.entries(ENGINES)
+            .filter(([_, config]) => config.isRemote)
+            .map(([id, config]) => ({ id, isRemote: config.isRemote }))
+        );
 
         const remoteEngines = Object.fromEntries(
           Object.entries(ENGINES)
             .filter(([_, config]) => config.isRemote)
-            .map(([id]) => [id, new RemoteCasbinEngine(id as Exclude<EngineType, 'node'>)]),
+            .map(([id]) => {
+              console.log(`Creating remote engine for: ${id}`);
+              return [id, new RemoteCasbinEngine(id as Exclude<EngineType, 'node'>)];
+            }),
         ) as Record<Exclude<EngineType, 'node'>, RemoteCasbinEngine>;
 
         const requests = testCase.request.split('\n').filter(Boolean);
 
         for (const request of requests) {
+          console.log('Processing request:', request);
           const requestParams = request.split(',').map((param) => {
             const trimmed = param.trim();
             if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
@@ -49,6 +60,7 @@ describe('Casbin Engine Tests', () => {
 
           for (const [engineType, engine] of Object.entries(remoteEngines)) {
             try {
+              console.log(`Testing engine: ${engineType}`);
               const remoteResult = await engine.enforce({
                 model: testCase.model,
                 policy: testCase.policy || '',
@@ -56,6 +68,7 @@ describe('Casbin Engine Tests', () => {
               });
 
               if (remoteResult.error) {
+                console.error(`Engine ${engineType} returned error:`, remoteResult.error);
                 throw new Error(`${engineType} engine error: ${remoteResult.error}`);
               }
 
@@ -68,6 +81,12 @@ describe('Casbin Engine Tests', () => {
 
               expect(remoteResult.allowed).toBe(nodeResult);
             } catch (engineError: any) {
+              console.error(`Detailed error for ${engineType}:`, {
+                message: engineError.message,
+                stack: engineError.stack,
+                error: engineError
+              });
+              
               const errorMessage = [
                 `\n=== Error in [${testCase.name}] ([${engineType}]) ===`,
                 `Error message: [${engineError.message}]`,
